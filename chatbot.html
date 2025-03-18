@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot IA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .chat-container {
+            width: 400px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        .chat-header {
+            background: #007BFF;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .chat-box {
+            height: 300px;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            max-width: 70%;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 10px;
+        }
+        .user-message {
+            background: #007BFF;
+            color: white;
+            align-self: flex-end;
+        }
+        .bot-message {
+            background: #e4e6eb;
+            color: black;
+            align-self: flex-start;
+        }
+        .input-box {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+        .input-box input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            outline: none;
+        }
+        .input-box button {
+            background: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin-left: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .input-box button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <div class="chat-header">🤖 Chatbot IA</div>
+        <div class="chat-box" id="chat-box">
+            <div class="message bot-message">Bonjour ! Comment puis-je vous aider ?</div>
+        </div>
+        <div class="input-box">
+            <input type="text" id="user-input" placeholder="Posez-moi une question..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">Envoyer</button>
+        </div>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            let userInput = document.getElementById("user-input").value.trim();
+            if (userInput === "") return;
+
+            addMessage(userInput, "user-message");
+
+            try {
+                let response = await fetch(`http://127.0.0.1:5002/chatbot?message=${encodeURIComponent(userInput)}`);
+                let data = await response.json();
+
+                if (typeof data.response === "object") {
+                    // Si la réponse est une liste JSON, on l'affiche correctement
+                    let botResponse = data.response.map(item => {
+                        if (item.StockCode && item.Description) {
+                            return `${item.StockCode} - ${item.Description}`;
+                        }
+                        return JSON.stringify(item);
+                    }).join("<br>");
+                    addMessage(botResponse, "bot-message");
+                } else {
+                    addMessage(data.response, "bot-message");
+                }
+
+            } catch (error) {
+                addMessage("❌ Erreur de connexion avec le serveur.", "bot-message");
+            }
+
+            document.getElementById("user-input").value = "";
+        }
+
+        function addMessage(text, className) {
+            let chatBox = document.getElementById("chat-box");
+            let messageDiv = document.createElement("div");
+            messageDiv.className = `message ${className}`;
+            messageDiv.innerHTML = text;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight; // Scroll automatique vers le bas
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        }
+    </script>
+
+</body>
+</html>
