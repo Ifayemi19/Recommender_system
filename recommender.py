@@ -51,7 +51,7 @@ def recommend_products_collaborative(user_id, num_recommendations=5):
     except Exception as e:
         return [{"error": f"Erreur dans la recommandation collaborative : {str(e)}"}]
     
-def recommend_products_content_based(product_desc, num_recommendations=5):
+def recommend_products_content_based(product_desc, num_recommendations=4):
     """ Recommande des produits similaires basés sur leur description (KNN). """
     try:
         if not product_desc or len(product_desc.strip()) == 0:

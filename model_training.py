@@ -2,7 +2,7 @@ from implicit.als import AlternatingLeastSquares
 from sklearn.neighbors import NearestNeighbors
 from scipy.sparse import csr_matrix
 import joblib
-from data_processing import load_and_process_data
+from recommender_system.Recommender_system.data_processing import load_and_process_data
 
 # 📥 Chargement des données
 print("📥 Chargement des données...")

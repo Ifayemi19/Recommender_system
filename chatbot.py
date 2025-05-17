@@ -1,8 +1,11 @@
 import requests
 from flask import Flask, request, jsonify
+from flask_cors import CORS
+
 
 app = Flask(__name__)
 
+CORS(app)
 # URL de l'API de recommandation
 RECOMMENDATION_API_BASE = "http://127.0.0.1:5001/recommend"
 

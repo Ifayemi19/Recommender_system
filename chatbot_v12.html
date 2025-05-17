@@ -133,12 +133,10 @@
   </style>
 </head>
 <body>
-    <header>
-        PROJET RECOMMENDATION YNOV
-        <span id="username-display" style="margin-left: 15px; font-size: 1rem; font-weight: normal;"></span>
-        <button id="logoutBtn" onclick="logoutUser()">Se déconnecter</button>
-      </header>
-      
+  <header>
+    PROJET RECOMMENDATION YNOV
+    <button id="logoutBtn" onclick="logoutUser()">Se déconnecter</button>
+  </header>
 
   <div id="auth-screen">
     <h2>Bienvenue 👋</h2>
@@ -168,236 +166,125 @@
   </main>
 
   <script>
-
+    let conversations = JSON.parse(localStorage.getItem('conversations')) || [];
+    let currentId = localStorage.getItem('currentConversationId') || null;
     const userAvatar = "user.jpg";
     const botAvatar = "robot.jpg";
-    let userId = localStorage.getItem("user_id");
-    let username = localStorage.getItem("username");
 
-    let conversations = [];
-    let currentId = null;
-
-    if (userId) {
-        conversations = JSON.parse(localStorage.getItem(`conversations_${userId}`)) || [];
-
-        // Récupération de l'ID de conversation spécifique à l'utilisateur connecté
-        const storedId = localStorage.getItem(`currentConversationId_${userId}`);
-        const exists = conversations.some(c => c.id === storedId);
-        currentId = exists ? storedId : (conversations[0]?.id || null);
-
-        document.getElementById("auth-screen").style.display = "none";
-        document.querySelector("main").style.display = "flex";
-        document.getElementById("username-display").textContent = `Bienvenue, ${username} 👋`;
-
-        renderConversationList();
-        renderMessages();
-        }
-    
-    function logoutUser() {
-        localStorage.removeItem('user_id');
-        localStorage.removeItem('username');
-        localStorage.removeItem(`currentConversationId_${userId}`);
-
-        document.querySelector("main").style.display = "none";
-        document.getElementById("auth-screen").style.display = "flex";
-        document.getElementById("username-display").textContent = "";
-        }
-  
-    async function registerUser() {
-      const usernameInput = document.getElementById('auth-username').value;
-      const password = document.getElementById('auth-password').value;
-      const error = document.getElementById('auth-error');
-      const res = await fetch('http://127.0.0.1:5000/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: usernameInput, password })
-      });
-      const data = await res.json();
-      if (data.success) {
-        userId = data.user_id;
-        username = usernameInput;
-        localStorage.setItem('user_id', userId);
-        localStorage.setItem('username', username);
-        conversations = [];
-        localStorage.setItem(`conversations_${userId}`, JSON.stringify(conversations));
-        document.getElementById("auth-screen").style.display = "none";
-        document.querySelector("main").style.display = "flex";
-        document.getElementById("username-display").textContent = `Bienvenue, ${username} 👋`;
-        currentId = null;
-        renderConversationList();
-        renderMessages();
-        newConversation();  
-        ;
-      } else {
-        error.textContent = data.message;
-      }
-    }
-  
-    async function loginUser() {
-      const usernameInput = document.getElementById('auth-username').value;
-      const password = document.getElementById('auth-password').value;
-      const error = document.getElementById('auth-error');
-      const res = await fetch('http://127.0.0.1:5000/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: usernameInput, password })
-      });
-      const data = await res.json();
-      if (data.success) {
-        userId = data.user_id;
-        username = usernameInput;
-        localStorage.setItem('user_id', userId);
-        localStorage.setItem('username', username);
-        conversations = JSON.parse(localStorage.getItem(`conversations_${userId}`)) || [];
-
-        document.getElementById("auth-screen").style.display = "none";
-        document.querySelector("main").style.display = "flex";
-        document.getElementById("username-display").textContent = `Bienvenue, ${username} 👋`;
-
-        const storedId = localStorage.getItem(`currentConversationId_${userId}`);
-        const exists = conversations.some(c => c.id === storedId);
-
-        if (conversations.length > 0 && exists) {
-        currentId = storedId;
-        } else if (conversations.length > 0) {
-        currentId = conversations[0].id;
-        } else {
-        newConversation();
-        return; // ✅ pour éviter de redessiner 2 fois
-        }
-
-        renderConversationList();
-        renderMessages();
-
-      } else {
-        error.textContent = data.message;
-      }
-    }
-  
-    function newConversation() {
-      const newId = Date.now().toString();
-      const title = "Nouvelle conversation - " + new Date().toLocaleTimeString();
-      conversations.push({ id: newId, title, messages: [] });
-      currentId = newId;
-      saveConversations();
+    if (localStorage.getItem('user_id')) {
+      document.getElementById("auth-screen").style.display = "none";
+      document.querySelector("main").style.display = "flex";
+      if (!currentId && conversations.length > 0) currentId = conversations[0].id;
       renderConversationList();
       renderMessages();
-      const introMessage = `👋 Bonjour ! Je suis ton assistant intelligent de recommandation.<br><br>
-      💡 Je peux t’aider à :<br>
-      • Recommander des produits selon tes goûts (🧠 collaboratif)<br>
-      • Trouver des produits similaires à un article (📦 contenu)<br><br>
-      Tape <strong>recommande-moi</strong> pour commencer !`;
-      displayMessage(introMessage, "bot");
     }
-  
+
+    function logoutUser() {
+      localStorage.clear();
+      document.querySelector("main").style.display = "none";
+      document.getElementById("auth-screen").style.display = "flex";
+    }
+
+    async function registerUser() {
+      const username = document.getElementById('auth-username').value;
+      const password = document.getElementById('auth-password').value;
+      const error = document.getElementById('auth-error');
+      const res = await fetch('http://127.0.0.1:5003/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('user_id', data.user_id);
+        document.getElementById("auth-screen").style.display = "none";
+        document.querySelector("main").style.display = "flex";
+        newConversation();
+      } else {
+        error.textContent = data.message;
+      }
+    }
+
+    async function loginUser() {
+      const username = document.getElementById('auth-username').value;
+      const password = document.getElementById('auth-password').value;
+      const error = document.getElementById('auth-error');
+      const res = await fetch('http://127.0.0.1:5003/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('user_id', data.user_id);
+        document.getElementById("auth-screen").style.display = "none";
+        document.querySelector("main").style.display = "flex";
+        newConversation();
+      } else {
+        error.textContent = data.message;
+      }
+    }
+
+    function newConversation() {
+  const newId = Date.now().toString();
+  const title = "Nouvelle conversation - " + new Date().toLocaleTimeString();
+  conversations.push({ id: newId, title, messages: [] });
+  currentId = newId;
+  saveConversations();
+  renderConversationList();
+  renderMessages();
+
+  // ✅ Message complet dans un seul bloc
+  const introMessage = `👋 Bonjour ! Je suis ton assistant intelligent de recommandation.<br><br>
+  💡 Je peux t’aider à :<br>
+  • Recommander des produits selon tes goûts (🧠 collaboratif)<br>
+  • Trouver des produits similaires à un article (📦 contenu)<br><br>
+  Tape <strong>recommande-moi</strong> pour commencer !`;
+
+  displayMessage(introMessage, "bot");
+}
+
+
+
     function sendMessage() {
       const input = document.getElementById("userInput");
       const text = input.value.trim();
-      input.value = "";
       if (!text || !currentId) return;
-  
       const conversation = conversations.find(c => c.id === currentId);
       conversation.messages.push({ sender: "user", text });
-  
-      if (text.toLowerCase() === "recommande_moi") {
-        conversation.messages.push({
-          sender: "bot",
-          text: `Souhaitez-vous une recommandation :<br>
-          • Basée sur vos préférences (🧠 tapez <strong>collaboratif</strong>)<br>
-          • Ou sur un produit précis (📦 tapez <strong>contenu</strong>) ?`
-        });
-        saveConversations();
-        renderMessages();
-        return;
-      }
-  
-      if (text.toLowerCase() === "collaboratif") {
-        conversation.mode = "collaboratif";
-        conversation.messages.push({ sender: "bot", text: "Parfait ! 🧠 Entrez votre ID utilisateur." });
-        saveConversations();
-        renderMessages();
-        return;
-      }
-  
-      if (text.toLowerCase() === "contenu") {
-        conversation.mode = "contenu";
-        conversation.messages.push({ sender: "bot", text: "Très bien ! 📦 Décrivez-moi un produit que vous aimez." });
-        saveConversations();
-        renderMessages();
-        return;
-      }
-  
-      let apiUrl = "http://127.0.0.1:5000/recommend";
-      if (conversation.mode === "collaboratif" && !isNaN(text)) {
-        apiUrl += "/collaborative?user_id=" + encodeURIComponent(text);
-      } else if (conversation.mode === "contenu" && text.length > 3) {
-        apiUrl += "/content?description=" + encodeURIComponent(text);
-      } else {
-        apiUrl = "http://127.0.0.1:5000/chatbot?message=" + encodeURIComponent(text);
-      }
-  
-      fetch(apiUrl)
+      fetch(`http://127.0.0.1:5002/chatbot?message=${encodeURIComponent(text)}`)
         .then(res => res.json())
         .then(data => {
           let botReply = "";
-  
           if (data.recommendations) {
             botReply = `<strong>Voici ce que je te recommande :</strong><ul>`;
             data.recommendations.forEach(item => {
               botReply += `<li><strong>${item.Description}</strong> (Code: ${item.StockCode})</li>`;
             });
             botReply += `</ul>`;
-            botReply += `<br><br>🧐 Êtes-vous satisfait(e) de cette recommandation ?
-            <div class="emoji-buttons">
-              <span class="emoji" onclick="handleEmoji('😍')">😍</span>
-              <span class="emoji" onclick="handleEmoji('😐')">😐</span>
-              <span class="emoji" onclick="handleEmoji('😞')">😞</span>
-            </div>`;
           } else {
             botReply = typeof data.response === "string" ? data.response : JSON.stringify(data.response, null, 2);
           }
-  
           conversation.messages.push({ sender: "bot", text: botReply });
           saveConversations();
           renderMessages();
         })
         .catch(() => {
-          conversation.messages.push({ sender: "bot", text: "❌ Erreur de communication avec le serveur." });
+          conversation.messages.push({ sender: "bot", text: "Erreur de communication avec le serveur." });
           saveConversations();
           renderMessages();
         });
-  
+      input.value = "";
       renderMessages();
     }
-  
-    function handleEmoji(emoji) {
-      const conversation = conversations.find(c => c.id === currentId);
-      conversation.messages.push({ sender: "user", text: emoji });
-      let feedback = "";
-      if (emoji === "😍") feedback = "Trop cool ! Je suis ravi que ça vous plaise ! 💖";
-      if (emoji === "😐") feedback = "Merci pour votre retour, je vais essayer de faire mieux. 🙂";
-      if (emoji === "😞") feedback = "Oh, je suis désolé... Je vais chercher à m’améliorer. 😔";
-      conversation.messages.push({ sender: "bot", text: feedback });
-      saveConversations();
-      renderMessages();
-    }
-  
+
     function displayMessage(text, sender) {
       const conversation = conversations.find(c => c.id === currentId);
       conversation.messages.push({ sender, text });
       saveConversations();
       renderMessages();
     }
-  
-    function saveConversations() {
-    if (userId) {
-        localStorage.setItem(`conversations_${userId}`, JSON.stringify(conversations));
-        if (currentId) {
-        localStorage.setItem(`currentConversationId_${userId}`, currentId);
-        }
-    }
-    }
-  
+
     function renderConversationList() {
       const list = document.getElementById("conversationList");
       list.innerHTML = "";
@@ -409,14 +296,14 @@
         list.appendChild(div);
       });
     }
-  
+
     function selectConversation(id) {
       currentId = id;
-      localStorage.setItem(`currentConversationId_${userId}`, id);
+      localStorage.setItem('currentConversationId', id);
       renderConversationList();
       renderMessages();
     }
-  
+
     function renderMessages() {
       const container = document.getElementById("messages");
       container.innerHTML = "";
@@ -442,14 +329,11 @@
       });
       container.scrollTop = container.scrollHeight;
     }
-  
-    document.getElementById("userInput").addEventListener("keypress", function (e) {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
+
+    function saveConversations() {
+      localStorage.setItem('conversations', JSON.stringify(conversations));
+      localStorage.setItem('currentConversationId', currentId);
+    }
   </script>
-  
 </body>
 </html>

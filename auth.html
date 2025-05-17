@@ -1,0 +1,17 @@
+<div id="auth-screen" style="display: flex; flex-direction: column; align-items: center; padding: 2rem;">
+    <h2 style="color: #cc3377;">Bienvenue 👋</h2>
+    <p>Connectez-vous ou créez un compte pour commencer</p>
+  
+    <div style="margin: 1rem 0;">
+      <input id="auth-username" type="text" placeholder="Nom d'utilisateur" style="padding: 0.5rem; width: 250px;" />
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <input id="auth-password" type="password" placeholder="Mot de passe" style="padding: 0.5rem; width: 250px;" />
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button onclick="registerUser()">📝 S'inscrire</button>
+      <button onclick="loginUser()">🔐 Se connecter</button>
+    </div>
+    <p id="auth-error" style="color: red; margin-top: 1rem;"></p>
+  </div>
+  
