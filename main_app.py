@@ -146,5 +146,7 @@ def chatbot():
         return jsonify({"response": "Je ne comprends pas votre demande. Essayez de demander une recommandation."})
 
 
+# if __name__ == "__main__":
+#     app.run(host="0.0.0.0", port=5000, debug=True)
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
