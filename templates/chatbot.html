@@ -199,13 +199,13 @@
         return;
       }
 
-      let apiUrl = "http://13.39.237.31:5000/recommend";
+      let apiUrl = "http://127.0.0.1:5000/recommend";
       if (conversation.mode === "collaboratif" && !isNaN(text)) {
         apiUrl += "/collaborative?user_id=" + encodeURIComponent(text);
       } else if (conversation.mode === "contenu" && text.length > 3) {
         apiUrl += "/content?description=" + encodeURIComponent(text);
       } else {
-        apiUrl = "http://13.39.237.31:5000/chatbot?message=" + encodeURIComponent(text);
+        apiUrl = "http://127.0.0.1:5000/chatbot?message=" + encodeURIComponent(text);
       }
 
       fetch(apiUrl)
