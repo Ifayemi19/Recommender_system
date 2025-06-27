@@ -35,9 +35,9 @@ def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 
-@app.route("/")
-def home_page():
-    return render_template("chatbot.html")
+# @app.route("/")
+# def home_page():
+#     return render_template("chatbot.html")
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -102,9 +102,13 @@ def load_conversations():
     return jsonify({"success": True, "conversations": user_convs})
 
 
+# @app.route('/')
+# def home():
+#     return jsonify({"message": "API centrale unifiée prête à fonctionner ✅"})
+
 @app.route('/')
 def home():
-    return jsonify({"message": "API centrale unifiée prête à fonctionner ✅"})
+    return render_template("chatbot.html")
 
 
 @app.route('/recommend/collaborative', methods=['GET'])
