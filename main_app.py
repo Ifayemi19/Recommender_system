@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask import render_template
 from flask_cors import CORS
 import hashlib
 import json
@@ -32,6 +33,11 @@ else:
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
+
+
+@app.route("/")
+def home_page():
+    return render_template("chatbot.html")
 
 @app.route("/register", methods=["POST"])
 def register():

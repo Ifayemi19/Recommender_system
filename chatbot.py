@@ -9,6 +9,8 @@ CORS(app)
 # URL de l'API de recommandation
 RECOMMENDATION_API_BASE = "http://127.0.0.1:5001/recommend"
 
+
+
 @app.route("/chatbot", methods=["GET"])
 def chatbot():
     user_input = request.args.get("message", "").lower()
