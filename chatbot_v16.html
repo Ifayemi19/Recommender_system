@@ -20,11 +20,29 @@
       padding: 1rem;
       font-size: 1.5rem;
       font-weight: bold;
+      position: relative;
+    }
+    #logoutBtn {
+      position: absolute;
+      right: 1rem;
+      top: 1rem;
+      background-color: #ff66b2;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      cursor: pointer;
     }
     main {
-      display: flex;
+      display: none;
       flex: 1;
       overflow: hidden;
+    }
+    #auth-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
     }
     #sidebar {
       width: 250px;
@@ -92,7 +110,7 @@
       display: flex;
       gap: 10px;
     }
-    input[type="text"] {
+    input[type="text"], input[type="password"] {
       flex: 1;
       font-size: 1rem;
       padding: 0.75rem;
@@ -115,9 +133,24 @@
   </style>
 </head>
 <body>
-  <header>
-    PROJET RECOMMENDATION YNOV
-  </header>
+    <header>
+        PROJET RECOMMENDATION YNOV
+        <span id="username-display" style="margin-left: 15px; font-size: 1rem; font-weight: normal;"></span>
+        <button id="logoutBtn" onclick="logoutUser()">Se déconnecter</button>
+      </header>
+      
+
+  <div id="auth-screen">
+    <h2>Bienvenue 👋</h2>
+    <p>Connectez-vous ou créez un compte pour commencer</p>
+    <input id="auth-username" type="text" placeholder="Nom d'utilisateur" />
+    <input id="auth-password" type="password" placeholder="Mot de passe" />
+    <div style="margin-top: 1rem; display: flex; gap: 10px;">
+      <button onclick="registerUser()">📝 S'inscrire</button>
+      <button onclick="loginUser()">🔐 Se connecter</button>
+    </div>
+    <p id="auth-error" style="color: red; margin-top: 1rem;"></p>
+  </div>
 
   <main>
     <div id="sidebar">
@@ -135,17 +168,112 @@
   </main>
 
   <script>
+
     const userAvatar = "user.jpg";
     const botAvatar = "robot.jpg";
-    let userId = "defaultUser";
-    let username = "Utilisateur";
+    let userId = localStorage.getItem("user_id");
+    let username = localStorage.getItem("username");
 
-    let conversations = JSON.parse(localStorage.getItem(`conversations_${userId}`)) || [];
-    let currentId = conversations[0]?.id || null;
+    let conversations = [];
+    let currentId = null;
 
-    renderConversationList();
-    renderMessages();
+    if (userId) {
+        conversations = JSON.parse(localStorage.getItem(`conversations_${userId}`)) || [];
 
+        // Récupération de l'ID de conversation spécifique à l'utilisateur connecté
+        const storedId = localStorage.getItem(`currentConversationId_${userId}`);
+        const exists = conversations.some(c => c.id === storedId);
+        currentId = exists ? storedId : (conversations[0]?.id || null);
+
+        document.getElementById("auth-screen").style.display = "none";
+        document.querySelector("main").style.display = "flex";
+        document.getElementById("username-display").textContent = `Bienvenue, ${username} 👋`;
+
+        renderConversationList();
+        renderMessages();
+        }
+    
+    function logoutUser() {
+        localStorage.removeItem('user_id');
+        localStorage.removeItem('username');
+        localStorage.removeItem(`currentConversationId_${userId}`);
+
+        document.querySelector("main").style.display = "none";
+        document.getElementById("auth-screen").style.display = "flex";
+        document.getElementById("username-display").textContent = "";
+        }
+  
+    async function registerUser() {
+      const usernameInput = document.getElementById('auth-username').value;
+      const password = document.getElementById('auth-password').value;
+      const error = document.getElementById('auth-error');
+      const res = await fetch('http://127.0.0.1:5000/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: usernameInput, password })
+      });
+      const data = await res.json();
+      if (data.success) {
+        userId = data.user_id;
+        username = usernameInput;
+        localStorage.setItem('user_id', userId);
+        localStorage.setItem('username', username);
+        conversations = [];
+        localStorage.setItem(`conversations_${userId}`, JSON.stringify(conversations));
+        document.getElementById("auth-screen").style.display = "none";
+        document.querySelector("main").style.display = "flex";
+        document.getElementById("username-display").textContent = `Bienvenue, ${username} 👋`;
+        currentId = null;
+        renderConversationList();
+        renderMessages();
+        newConversation();  
+        ;
+      } else {
+        error.textContent = data.message;
+      }
+    }
+  
+    async function loginUser() {
+      const usernameInput = document.getElementById('auth-username').value;
+      const password = document.getElementById('auth-password').value;
+      const error = document.getElementById('auth-error');
+      const res = await fetch('http://127.0.0.1:5000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: usernameInput, password })
+      });
+      const data = await res.json();
+      if (data.success) {
+        userId = data.user_id;
+        username = usernameInput;
+        localStorage.setItem('user_id', userId);
+        localStorage.setItem('username', username);
+        conversations = JSON.parse(localStorage.getItem(`conversations_${userId}`)) || [];
+
+        document.getElementById("auth-screen").style.display = "none";
+        document.querySelector("main").style.display = "flex";
+        document.getElementById("username-display").textContent = `Bienvenue, ${username} 👋`;
+
+        const storedId = localStorage.getItem(`currentConversationId_${userId}`);
+        const exists = conversations.some(c => c.id === storedId);
+
+        if (conversations.length > 0 && exists) {
+        currentId = storedId;
+        } else if (conversations.length > 0) {
+        currentId = conversations[0].id;
+        } else {
+        newConversation();
+        return; // ✅ pour éviter de redessiner 2 fois
+        }
+
+        renderConversationList();
+        renderMessages();
+
+      } else {
+        error.textContent = data.message;
+      }
+    }
+  
     function newConversation() {
       const newId = Date.now().toString();
       const title = "Nouvelle conversation - " + new Date().toLocaleTimeString();
@@ -161,16 +289,16 @@
       Tape <strong>recommande-moi</strong> pour commencer !`;
       displayMessage(introMessage, "bot");
     }
-
+  
     function sendMessage() {
       const input = document.getElementById("userInput");
       const text = input.value.trim();
       input.value = "";
       if (!text || !currentId) return;
-
+  
       const conversation = conversations.find(c => c.id === currentId);
       conversation.messages.push({ sender: "user", text });
-
+  
       if (text.toLowerCase() === "recommande_moi") {
         conversation.messages.push({
           sender: "bot",
@@ -182,7 +310,7 @@
         renderMessages();
         return;
       }
-
+  
       if (text.toLowerCase() === "collaboratif") {
         conversation.mode = "collaboratif";
         conversation.messages.push({ sender: "bot", text: "Parfait ! 🧠 Entrez votre ID utilisateur." });
@@ -190,7 +318,7 @@
         renderMessages();
         return;
       }
-
+  
       if (text.toLowerCase() === "contenu") {
         conversation.mode = "contenu";
         conversation.messages.push({ sender: "bot", text: "Très bien ! 📦 Décrivez-moi un produit que vous aimez." });
@@ -198,7 +326,7 @@
         renderMessages();
         return;
       }
-
+  
       let apiUrl = "http://127.0.0.1:5000/recommend";
       if (conversation.mode === "collaboratif" && !isNaN(text)) {
         apiUrl += "/collaborative?user_id=" + encodeURIComponent(text);
@@ -207,12 +335,12 @@
       } else {
         apiUrl = "http://127.0.0.1:5000/chatbot?message=" + encodeURIComponent(text);
       }
-
+  
       fetch(apiUrl)
         .then(res => res.json())
         .then(data => {
           let botReply = "";
-
+  
           if (data.recommendations) {
             botReply = `<strong>Voici ce que je te recommande :</strong><ul>`;
             data.recommendations.forEach(item => {
@@ -228,7 +356,7 @@
           } else {
             botReply = typeof data.response === "string" ? data.response : JSON.stringify(data.response, null, 2);
           }
-
+  
           conversation.messages.push({ sender: "bot", text: botReply });
           saveConversations();
           renderMessages();
@@ -238,10 +366,10 @@
           saveConversations();
           renderMessages();
         });
-
+  
       renderMessages();
     }
-
+  
     function handleEmoji(emoji) {
       const conversation = conversations.find(c => c.id === currentId);
       conversation.messages.push({ sender: "user", text: emoji });
@@ -253,21 +381,23 @@
       saveConversations();
       renderMessages();
     }
-
+  
     function displayMessage(text, sender) {
       const conversation = conversations.find(c => c.id === currentId);
       conversation.messages.push({ sender, text });
       saveConversations();
       renderMessages();
     }
-
+  
     function saveConversations() {
-      localStorage.setItem(`conversations_${userId}`, JSON.stringify(conversations));
-      if (currentId) {
+    if (userId) {
+        localStorage.setItem(`conversations_${userId}`, JSON.stringify(conversations));
+        if (currentId) {
         localStorage.setItem(`currentConversationId_${userId}`, currentId);
-      }
+        }
     }
-
+    }
+  
     function renderConversationList() {
       const list = document.getElementById("conversationList");
       list.innerHTML = "";
@@ -279,14 +409,14 @@
         list.appendChild(div);
       });
     }
-
+  
     function selectConversation(id) {
       currentId = id;
       localStorage.setItem(`currentConversationId_${userId}`, id);
       renderConversationList();
       renderMessages();
     }
-
+  
     function renderMessages() {
       const container = document.getElementById("messages");
       container.innerHTML = "";
@@ -312,7 +442,7 @@
       });
       container.scrollTop = container.scrollHeight;
     }
-
+  
     document.getElementById("userInput").addEventListener("keypress", function (e) {
       if (e.key === "Enter") {
         e.preventDefault();
@@ -320,5 +450,6 @@
       }
     });
   </script>
+  
 </body>
 </html>

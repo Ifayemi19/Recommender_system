@@ -112,13 +112,27 @@
     button:hover {
       background-color: #ff66b2;
     }
+    .emoji-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    .emoji:hover {
+      transform: scale(1.3);
+    }
+    ul {
+      margin-top: 0.5rem;
+      padding-left: 1.5rem;
+    }
+    li {
+      margin-bottom: 0.3rem;
+    }
   </style>
 </head>
 <body>
-  <header>
-    PROJET RECOMMENDATION YNOV
-  </header>
-
+  <header>PROJET RECOMMENDATION YNOV</header>
   <main>
     <div id="sidebar">
       <h3>Conversations</h3>
@@ -133,140 +147,12 @@
       </div>
     </div>
   </main>
-
   <script>
+    let conversations = JSON.parse(localStorage.getItem('conversations')) || [];
+    let currentId = localStorage.getItem('currentConversationId') || null;
     const userAvatar = "user.jpg";
     const botAvatar = "robot.jpg";
-    let userId = "defaultUser";
-    let username = "Utilisateur";
-
-    let conversations = JSON.parse(localStorage.getItem(`conversations_${userId}`)) || [];
-    let currentId = conversations[0]?.id || null;
-
-    renderConversationList();
-    renderMessages();
-
-    function newConversation() {
-      const newId = Date.now().toString();
-      const title = "Nouvelle conversation - " + new Date().toLocaleTimeString();
-      conversations.push({ id: newId, title, messages: [] });
-      currentId = newId;
-      saveConversations();
-      renderConversationList();
-      renderMessages();
-      const introMessage = `👋 Bonjour ! Je suis ton assistant intelligent de recommandation.<br><br>
-      💡 Je peux t’aider à :<br>
-      • Recommander des produits selon tes goûts (🧠 collaboratif)<br>
-      • Trouver des produits similaires à un article (📦 contenu)<br><br>
-      Tape <strong>recommande-moi</strong> pour commencer !`;
-      displayMessage(introMessage, "bot");
-    }
-
-    function sendMessage() {
-      const input = document.getElementById("userInput");
-      const text = input.value.trim();
-      input.value = "";
-      if (!text || !currentId) return;
-
-      const conversation = conversations.find(c => c.id === currentId);
-      conversation.messages.push({ sender: "user", text });
-
-      if (text.toLowerCase() === "recommande_moi") {
-        conversation.messages.push({
-          sender: "bot",
-          text: `Souhaitez-vous une recommandation :<br>
-          • Basée sur vos préférences (🧠 tapez <strong>collaboratif</strong>)<br>
-          • Ou sur un produit précis (📦 tapez <strong>contenu</strong>) ?`
-        });
-        saveConversations();
-        renderMessages();
-        return;
-      }
-
-      if (text.toLowerCase() === "collaboratif") {
-        conversation.mode = "collaboratif";
-        conversation.messages.push({ sender: "bot", text: "Parfait ! 🧠 Entrez votre ID utilisateur." });
-        saveConversations();
-        renderMessages();
-        return;
-      }
-
-      if (text.toLowerCase() === "contenu") {
-        conversation.mode = "contenu";
-        conversation.messages.push({ sender: "bot", text: "Très bien ! 📦 Décrivez-moi un produit que vous aimez." });
-        saveConversations();
-        renderMessages();
-        return;
-      }
-
-      let apiUrl = "http://127.0.0.1:5000/recommend";
-      if (conversation.mode === "collaboratif" && !isNaN(text)) {
-        apiUrl += "/collaborative?user_id=" + encodeURIComponent(text);
-      } else if (conversation.mode === "contenu" && text.length > 3) {
-        apiUrl += "/content?description=" + encodeURIComponent(text);
-      } else {
-        apiUrl = "http://127.0.0.1:5000/chatbot?message=" + encodeURIComponent(text);
-      }
-
-      fetch(apiUrl)
-        .then(res => res.json())
-        .then(data => {
-          let botReply = "";
-
-          if (data.recommendations) {
-            botReply = `<strong>Voici ce que je te recommande :</strong><ul>`;
-            data.recommendations.forEach(item => {
-              botReply += `<li><strong>${item.Description}</strong> (Code: ${item.StockCode})</li>`;
-            });
-            botReply += `</ul>`;
-            botReply += `<br><br>🧐 Êtes-vous satisfait(e) de cette recommandation ?
-            <div class="emoji-buttons">
-              <span class="emoji" onclick="handleEmoji('😍')">😍</span>
-              <span class="emoji" onclick="handleEmoji('😐')">😐</span>
-              <span class="emoji" onclick="handleEmoji('😞')">😞</span>
-            </div>`;
-          } else {
-            botReply = typeof data.response === "string" ? data.response : JSON.stringify(data.response, null, 2);
-          }
-
-          conversation.messages.push({ sender: "bot", text: botReply });
-          saveConversations();
-          renderMessages();
-        })
-        .catch(() => {
-          conversation.messages.push({ sender: "bot", text: "❌ Erreur de communication avec le serveur." });
-          saveConversations();
-          renderMessages();
-        });
-
-      renderMessages();
-    }
-
-    function handleEmoji(emoji) {
-      const conversation = conversations.find(c => c.id === currentId);
-      conversation.messages.push({ sender: "user", text: emoji });
-      let feedback = "";
-      if (emoji === "😍") feedback = "Trop cool ! Je suis ravi que ça vous plaise ! 💖";
-      if (emoji === "😐") feedback = "Merci pour votre retour, je vais essayer de faire mieux. 🙂";
-      if (emoji === "😞") feedback = "Oh, je suis désolé... Je vais chercher à m’améliorer. 😔";
-      conversation.messages.push({ sender: "bot", text: feedback });
-      saveConversations();
-      renderMessages();
-    }
-
-    function displayMessage(text, sender) {
-      const conversation = conversations.find(c => c.id === currentId);
-      conversation.messages.push({ sender, text });
-      saveConversations();
-      renderMessages();
-    }
-
-    function saveConversations() {
-      localStorage.setItem(`conversations_${userId}`, JSON.stringify(conversations));
-      if (currentId) {
-        localStorage.setItem(`currentConversationId_${userId}`, currentId);
-      }
-    }
+    let userName = "";
 
     function renderConversationList() {
       const list = document.getElementById("conversationList");
@@ -282,8 +168,90 @@
 
     function selectConversation(id) {
       currentId = id;
-      localStorage.setItem(`currentConversationId_${userId}`, id);
+      localStorage.setItem('currentConversationId', id);
       renderConversationList();
+      renderMessages();
+    }
+
+    function newConversation() {
+      const newId = Date.now().toString();
+      const title = "Nouvelle recommandation - " + new Date().toLocaleTimeString();
+      conversations.push({ id: newId, title, messages: [] });
+      currentId = newId;
+      saveConversations();
+      renderConversationList();
+      renderMessages();
+      displayMessage(`👋 Bonjour ! Je suis votre assistant de recommandation. <br><br>Je peux vous proposer des produits basés sur :<ul><li>🧠 Vos préférences (collaboratif)</li><li>📦 Une description d’un produit (contenu)</li></ul><br>Mais d’abord, comment tu t’appelles ? 😊`, "bot");
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("userInput");
+      const text = input.value.trim();
+      if (!text || !currentId) return;
+
+      const conversation = conversations.find(c => c.id === currentId);
+      conversation.messages.push({ sender: "user", text });
+
+      if (!userName) {
+        userName = text.split(" ")[0];
+        conversation.messages.push({ sender: "bot", text: `Enchanté, ${userName} ! 😄 Tape \"recommande-moi\" pour commencer.` });
+        saveConversations();
+        renderMessages();
+        return;
+      }
+
+      try {
+        const res = await fetch(`http://127.0.0.1:5002/chatbot?message=${encodeURIComponent(text)}`);
+        const data = await res.json();
+        let botMessage = "";
+
+        if (typeof data.response === "object" && data.response.recommendations) {
+          botMessage = `<strong>Voici ce que je te propose, ${userName} :</strong><ul>`;
+          data.response.recommendations.forEach(item => {
+            botMessage += `<li><strong>${item.Description}</strong> (Code: ${item.StockCode})</li>`;
+          });
+          botMessage += `</ul><br><div class="emoji-buttons">
+            <span class="emoji" onclick="handleEmoji('😍')">😍</span>
+            <span class="emoji" onclick="handleEmoji('😐')">😐</span>
+            <span class="emoji" onclick="handleEmoji('😞')">😞</span>
+          </div>`;
+        } else {
+          botMessage = data.response;
+        }
+
+        conversation.messages.push({ sender: "bot", text: botMessage });
+        saveConversations();
+        renderMessages();
+      } catch (err) {
+        conversation.messages.push({ sender: "bot", text: "😥 Erreur de communication avec le serveur." });
+        saveConversations();
+        renderMessages();
+      }
+
+      input.value = "";
+    }
+
+    function handleEmoji(emoji) {
+      if (!currentId) return;
+      const conversation = conversations.find(c => c.id === currentId);
+      conversation.messages.push({ sender: "user", text: emoji });
+      let feedback = "";
+      if (emoji === "😍") {
+        feedback = "Trop cool, je suis ravi que tu aies aimé ! 💖";
+      } else if (emoji === "😐") {
+        feedback = "Merci pour ton retour, je vais essayer de faire mieux. 🙂";
+      } else if (emoji === "😞") {
+        feedback = "Oups... je vais chercher à m'améliorer ! 😔";
+      }
+      conversation.messages.push({ sender: "bot", text: feedback });
+      saveConversations();
+      renderMessages();
+    }
+
+    function displayMessage(text, sender) {
+      const conversation = conversations.find(c => c.id === currentId);
+      conversation.messages.push({ sender, text });
+      saveConversations();
       renderMessages();
     }
 
@@ -313,12 +281,14 @@
       container.scrollTop = container.scrollHeight;
     }
 
-    document.getElementById("userInput").addEventListener("keypress", function (e) {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
+    function saveConversations() {
+      localStorage.setItem('conversations', JSON.stringify(conversations));
+      localStorage.setItem('currentConversationId', currentId);
+    }
+
+    if (!currentId && conversations.length > 0) currentId = conversations[0].id;
+    renderConversationList();
+    renderMessages();
   </script>
 </body>
 </html>

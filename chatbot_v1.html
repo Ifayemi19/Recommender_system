@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Chatbot Recommandation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background: #f0f0f0;
+    }
+    #chatbox {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .message {
+      margin: 0.5rem 0;
+    }
+    .user {
+      font-weight: bold;
+      color: #007acc;
+    }
+    .bot {
+      color: #333;
+    }
+    input, button {
+      padding: 0.5rem;
+      font-size: 1rem;
+      margin-top: 1rem;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="chatbox">
+    <div id="messages"></div>
+    <input type="text" id="userInput" placeholder="Tapez votre message..." />
+    <button onclick="sendMessage()">Envoyer</button>
+  </div>
+
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById("userInput");
+      const message = input.value.trim();
+      if (!message) return;
+
+      // Affiche le message utilisateur
+      const messagesDiv = document.getElementById("messages");
+      messagesDiv.innerHTML += `<div class="message user">Vous: ${message}</div>`;
+      input.value = "";
+
+      // Appelle le backend Flask
+      try {
+        const response = await fetch(`http://127.0.0.1:5002/chatbot?message=${encodeURIComponent(message)}`);
+        const data = await response.json();
+        const botResponse = typeof data.response === "string" ? data.response : JSON.stringify(data.response);
+        messagesDiv.innerHTML += `<div class="message bot">Bot: ${botResponse}</div>`;
+      } catch (error) {
+        messagesDiv.innerHTML += `<div class="message bot">Bot: Erreur lors de la communication avec le serveur.</div>`;
+      }
+
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+  </script>
+</body>
+</html>

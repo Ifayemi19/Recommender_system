@@ -20,11 +20,29 @@
       padding: 1rem;
       font-size: 1.5rem;
       font-weight: bold;
+      position: relative;
+    }
+    #logoutBtn {
+      position: absolute;
+      right: 1rem;
+      top: 1rem;
+      background-color: #ff66b2;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      cursor: pointer;
     }
     main {
-      display: flex;
+      display: none;
       flex: 1;
       overflow: hidden;
+    }
+    #auth-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
     }
     #sidebar {
       width: 250px;
@@ -92,7 +110,7 @@
       display: flex;
       gap: 10px;
     }
-    input[type="text"] {
+    input[type="text"], input[type="password"] {
       flex: 1;
       font-size: 1rem;
       padding: 0.75rem;
@@ -117,7 +135,20 @@
 <body>
   <header>
     PROJET RECOMMENDATION YNOV
+    <button id="logoutBtn" onclick="logoutUser()">Se déconnecter</button>
   </header>
+
+  <div id="auth-screen">
+    <h2>Bienvenue 👋</h2>
+    <p>Connectez-vous ou créez un compte pour commencer</p>
+    <input id="auth-username" type="text" placeholder="Nom d'utilisateur" />
+    <input id="auth-password" type="password" placeholder="Mot de passe" />
+    <div style="margin-top: 1rem; display: flex; gap: 10px;">
+      <button onclick="registerUser()">📝 S'inscrire</button>
+      <button onclick="loginUser()">🔐 Se connecter</button>
+    </div>
+    <p id="auth-error" style="color: red; margin-top: 1rem;"></p>
+  </div>
 
   <main>
     <div id="sidebar">
@@ -135,16 +166,64 @@
   </main>
 
   <script>
+    let conversations = JSON.parse(localStorage.getItem('conversations')) || [];
+    let currentId = localStorage.getItem('currentConversationId') || null;
     const userAvatar = "user.jpg";
     const botAvatar = "robot.jpg";
-    let userId = "defaultUser";
-    let username = "Utilisateur";
 
-    let conversations = JSON.parse(localStorage.getItem(`conversations_${userId}`)) || [];
-    let currentId = conversations[0]?.id || null;
+    if (localStorage.getItem('user_id')) {
+      document.getElementById("auth-screen").style.display = "none";
+      document.querySelector("main").style.display = "flex";
+      if (!currentId && conversations.length > 0) currentId = conversations[0].id;
+      renderConversationList();
+      renderMessages();
+    }
 
-    renderConversationList();
-    renderMessages();
+    function logoutUser() {
+      localStorage.clear();
+      document.querySelector("main").style.display = "none";
+      document.getElementById("auth-screen").style.display = "flex";
+    }
+
+    async function registerUser() {
+      const username = document.getElementById('auth-username').value;
+      const password = document.getElementById('auth-password').value;
+      const error = document.getElementById('auth-error');
+      const res = await fetch('http://127.0.0.1:5003/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('user_id', data.user_id);
+        document.getElementById("auth-screen").style.display = "none";
+        document.querySelector("main").style.display = "flex";
+        newConversation();
+      } else {
+        error.textContent = data.message;
+      }
+    }
+
+    async function loginUser() {
+      const username = document.getElementById('auth-username').value;
+      const password = document.getElementById('auth-password').value;
+      const error = document.getElementById('auth-error');
+      const res = await fetch('http://127.0.0.1:5003/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('user_id', data.user_id);
+        document.getElementById("auth-screen").style.display = "none";
+        document.querySelector("main").style.display = "flex";
+        newConversation();
+      } else {
+        error.textContent = data.message;
+      }
+    }
 
     function newConversation() {
       const newId = Date.now().toString();
@@ -154,103 +233,29 @@
       saveConversations();
       renderConversationList();
       renderMessages();
-      const introMessage = `👋 Bonjour ! Je suis ton assistant intelligent de recommandation.<br><br>
-      💡 Je peux t’aider à :<br>
-      • Recommander des produits selon tes goûts (🧠 collaboratif)<br>
-      • Trouver des produits similaires à un article (📦 contenu)<br><br>
-      Tape <strong>recommande-moi</strong> pour commencer !`;
-      displayMessage(introMessage, "bot");
+      displayMessage("Bonjour ! Posez-moi une question ou décrivez votre besoin 😊", "bot");
     }
 
     function sendMessage() {
       const input = document.getElementById("userInput");
       const text = input.value.trim();
-      input.value = "";
       if (!text || !currentId) return;
-
       const conversation = conversations.find(c => c.id === currentId);
       conversation.messages.push({ sender: "user", text });
-
-      if (text.toLowerCase() === "recommande_moi") {
-        conversation.messages.push({
-          sender: "bot",
-          text: `Souhaitez-vous une recommandation :<br>
-          • Basée sur vos préférences (🧠 tapez <strong>collaboratif</strong>)<br>
-          • Ou sur un produit précis (📦 tapez <strong>contenu</strong>) ?`
-        });
-        saveConversations();
-        renderMessages();
-        return;
-      }
-
-      if (text.toLowerCase() === "collaboratif") {
-        conversation.mode = "collaboratif";
-        conversation.messages.push({ sender: "bot", text: "Parfait ! 🧠 Entrez votre ID utilisateur." });
-        saveConversations();
-        renderMessages();
-        return;
-      }
-
-      if (text.toLowerCase() === "contenu") {
-        conversation.mode = "contenu";
-        conversation.messages.push({ sender: "bot", text: "Très bien ! 📦 Décrivez-moi un produit que vous aimez." });
-        saveConversations();
-        renderMessages();
-        return;
-      }
-
-      let apiUrl = "http://127.0.0.1:5000/recommend";
-      if (conversation.mode === "collaboratif" && !isNaN(text)) {
-        apiUrl += "/collaborative?user_id=" + encodeURIComponent(text);
-      } else if (conversation.mode === "contenu" && text.length > 3) {
-        apiUrl += "/content?description=" + encodeURIComponent(text);
-      } else {
-        apiUrl = "http://127.0.0.1:5000/chatbot?message=" + encodeURIComponent(text);
-      }
-
-      fetch(apiUrl)
+      fetch(`http://127.0.0.1:5002/chatbot?message=${encodeURIComponent(text)}`)
         .then(res => res.json())
         .then(data => {
-          let botReply = "";
-
-          if (data.recommendations) {
-            botReply = `<strong>Voici ce que je te recommande :</strong><ul>`;
-            data.recommendations.forEach(item => {
-              botReply += `<li><strong>${item.Description}</strong> (Code: ${item.StockCode})</li>`;
-            });
-            botReply += `</ul>`;
-            botReply += `<br><br>🧐 Êtes-vous satisfait(e) de cette recommandation ?
-            <div class="emoji-buttons">
-              <span class="emoji" onclick="handleEmoji('😍')">😍</span>
-              <span class="emoji" onclick="handleEmoji('😐')">😐</span>
-              <span class="emoji" onclick="handleEmoji('😞')">😞</span>
-            </div>`;
-          } else {
-            botReply = typeof data.response === "string" ? data.response : JSON.stringify(data.response, null, 2);
-          }
-
+          const botReply = typeof data.response === "string" ? data.response : JSON.stringify(data.response, null, 2);
           conversation.messages.push({ sender: "bot", text: botReply });
           saveConversations();
           renderMessages();
         })
         .catch(() => {
-          conversation.messages.push({ sender: "bot", text: "❌ Erreur de communication avec le serveur." });
+          conversation.messages.push({ sender: "bot", text: "Erreur de communication avec le serveur." });
           saveConversations();
           renderMessages();
         });
-
-      renderMessages();
-    }
-
-    function handleEmoji(emoji) {
-      const conversation = conversations.find(c => c.id === currentId);
-      conversation.messages.push({ sender: "user", text: emoji });
-      let feedback = "";
-      if (emoji === "😍") feedback = "Trop cool ! Je suis ravi que ça vous plaise ! 💖";
-      if (emoji === "😐") feedback = "Merci pour votre retour, je vais essayer de faire mieux. 🙂";
-      if (emoji === "😞") feedback = "Oh, je suis désolé... Je vais chercher à m’améliorer. 😔";
-      conversation.messages.push({ sender: "bot", text: feedback });
-      saveConversations();
+      input.value = "";
       renderMessages();
     }
 
@@ -259,13 +264,6 @@
       conversation.messages.push({ sender, text });
       saveConversations();
       renderMessages();
-    }
-
-    function saveConversations() {
-      localStorage.setItem(`conversations_${userId}`, JSON.stringify(conversations));
-      if (currentId) {
-        localStorage.setItem(`currentConversationId_${userId}`, currentId);
-      }
     }
 
     function renderConversationList() {
@@ -282,7 +280,7 @@
 
     function selectConversation(id) {
       currentId = id;
-      localStorage.setItem(`currentConversationId_${userId}`, id);
+      localStorage.setItem('currentConversationId', id);
       renderConversationList();
       renderMessages();
     }
@@ -313,12 +311,10 @@
       container.scrollTop = container.scrollHeight;
     }
 
-    document.getElementById("userInput").addEventListener("keypress", function (e) {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
+    function saveConversations() {
+      localStorage.setItem('conversations', JSON.stringify(conversations));
+      localStorage.setItem('currentConversationId', currentId);
+    }
   </script>
 </body>
 </html>

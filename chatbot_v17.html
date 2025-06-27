@@ -117,6 +117,7 @@
 <body>
   <header>
     PROJET RECOMMENDATION YNOV
+    <span id="username-display" style="margin-left: 15px; font-size: 1rem; font-weight: normal;"></span>
   </header>
 
   <main>
@@ -142,6 +143,9 @@
 
     let conversations = JSON.parse(localStorage.getItem(`conversations_${userId}`)) || [];
     let currentId = conversations[0]?.id || null;
+
+    document.querySelector("main").style.display = "flex";
+    document.getElementById("username-display").textContent = `Bienvenue, ${username} 👋`;
 
     renderConversationList();
     renderMessages();
